@@ -1,0 +1,15 @@
+.search {
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  width: 240px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  font-size: $s-size;
+  outline: none;
+  text-overflow: ellipsis;
+  position: absolute;
+  top: 1rem;
+  right: 25%;
+}
