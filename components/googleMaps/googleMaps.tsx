@@ -1,75 +1,89 @@
-import { useEffect, useRef } from 'react';
+import {
+  GoogleMap,
+  Marker,
+  StandaloneSearchBox,
+  useLoadScript,
+} from '@react-google-maps/api';
+import { useCallback, useRef, useState } from 'react';
 
-import { onGlobal } from '../lib/on-global';
+const GoogleMaps = () => {
+  const mapRef = useRef();
+  const [markers, setMarkers] = useState([]);
 
-import { GoogleMapsProps } from './googleMapsProps';
+  // Move to a mock folder
+  const initialLocation = { lat: 41.49675, lng: 1.898728 };
+  const libraries = ['places'];
 
-const GoogleMap = (props: GoogleMapsProps) => {
-  const googleMapRef = useRef();
-  //TODO: Move api and google url to api folder
-  const GOOGLE_MAP_API_KEY = 'AIzaSyB3EkGRUsuzb8JflnVg_v8wy2bamHZGGkI';
-  const GoogleUrl = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAP_API_KEY}`;
-  const { zoom, initialLocation, arrayMarks } = props;
+  //API
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.googleMapKey,
+    libraries,
+  });
 
-  const createMark = (googleMap: google.maps.Map<Element>) => {
-    arrayMarks.map(
-      (mark) =>
-        new google.maps.Marker({
-          position: mark.location,
-          map: googleMap,
-          label: mark.label,
-        })
-    );
+  // use google-map-wrapper
+  const mapContainerStyle = {
+    width: '100%',
+    height: '100%',
   };
 
-  const createGoogleMaps = () => {
-    onGlobal('google')
-      .then(() => {
-        const mapgoogle = new google.maps.Map(googleMapRef.current, {
-          zoom,
-          center: initialLocation,
-        });
-
-        // Markers
-        if (arrayMarks) {
-          createMark(mapgoogle);
-        }
-      })
-      .catch((err) => {
-        console.log(`onGlobal error: ${err}`);
-      });
+  const options = {
+    disableDefaultUI: true,
+    zoomControl: true,
+    fullscreenControl: true,
   };
 
-  const createScriptGoogleMap = () => {
-    const googleMapScript = document.createElement('script');
-
-    googleMapScript.id = 'google-maps-script';
-    googleMapScript.src = GoogleUrl;
-    window.document.body.appendChild(googleMapScript);
-
-    googleMapScript.addEventListener('load', () => {
-      createGoogleMaps();
-    });
-  };
-
-  useEffect(() => {
-    const existScript = document.getElementById('google-maps-script');
-
-    if (existScript === null) {
-      createScriptGoogleMap();
-    } else {
-      createGoogleMaps();
-    }
+  const onMapClick = useCallback((event) => {
+    setMarkers((current) => [
+      ...current,
+      {
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng(),
+        time: new Date(),
+      },
+    ]);
   }, []);
 
+  const onMapLoad = useCallback((map) => {
+    mapRef.current = map;
+  }, []);
+
+  // Early Return
+  if (loadError) {
+    return null;
+  }
+
+  if (!isLoaded) {
+    return 'loading maps';
+  }
+
   return (
-    <div
-      id="google-map"
-      key="react-map"
-      className="google-map-wrapper"
-      ref={googleMapRef}
-    />
+    <div className="small-container">
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        zoom={8}
+        center={initialLocation}
+        options={options}
+        onClick={onMapClick}
+        onLoad={onMapLoad}
+      >
+        {/* Added markers on click */}
+        {markers.map((marker) => (
+          <Marker
+            key={marker.time.toISOString()}
+            position={{ lat: marker.lat, lng: marker.lng }}
+          />
+        ))}
+        {/* standalone input text */}
+        <StandaloneSearchBox>
+          <input
+            type="text"
+            placeholder="custom placeholder"
+            className="search"
+          />
+        </StandaloneSearchBox>
+      </GoogleMap>
+    </div>
   );
 };
 
-export default GoogleMap;
+export default GoogleMaps;
